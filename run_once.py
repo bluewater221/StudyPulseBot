@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Load env (actions will provide these)
-load_dotenv()
+load_dotenv(override=True)
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
@@ -24,53 +24,53 @@ async def send_daily_content():
 
     bot = Bot(token=TOKEN)
     
-    # 1. Choose Type
-    msg_type = random.choice(["question", "fact", "formula"])
-    message_text = ""
-
-    # 2. Generate Content (Try AI first, fallback to local)
+    # --- Part 1: Send Fact/Key Note ---
     try:
-        if msg_type == "question":
-            ai_content = ai_service.get_ai_content("question")
-            if ai_content:
-                item = ai_content
-                text = f"🏗️ GATE Civil Question (AI Generated)\n\n{item['question']}\n\n"
-                for opt in item['options']:
-                    text += f"{opt}\n"
-                text += f"\nReply with A, B, C, or D. Answer will be revealed next hour.\n\n(Debugging Answer: {item.get('answer')})"
-                message_text = text
-            else:
-                item = random.choice(QUESTIONS)
-                text = f"🏗️ GATE Civil Question\n\n{item['question']}\n\n"
-                for opt in item['options']:
-                    text += f"{opt}\n"
-                text += "\nReply with A, B, C, or D. Answer will be revealed next hour."
-                message_text = text
+        fact_text = ""
+        ai_fact = ai_service.get_ai_content("fact")
+        if ai_fact:
+            fact_text = f"📝 **GATE Civil Key Note**\n\n{ai_fact['fact']}"
+        else:
+            fact = random.choice(FACTS)
+            fact_text = f"📝 **GATE Civil Key Note**\n\n{fact}"
+            
+        logger.info(f"Sending Fact to {CHANNEL_ID}...")
+        await bot.send_message(chat_id=CHANNEL_ID, text=fact_text, parse_mode='Markdown')
+        
+    except Exception as e:
+        logger.error(f"Failed to send fact: {e}")
 
-        elif msg_type == "fact":
-            ai_content = ai_service.get_ai_content("fact")
-            if ai_content:
-                message_text = f"📝 GATE Civil Key Note (AI Generated)\n\n{ai_content['fact']}"
-            else:
-                fact = random.choice(FACTS)
-                message_text = f"📝 GATE Civil Key Note\n\n{fact}"
-
-        else: # formula
-            ai_content = ai_service.get_ai_content("formula")
-            if ai_content:
-                item = ai_content
-                message_text = f"📐 GATE Civil Formula (AI Generated)\n\n{item['title']}\n{item['formula']}\n{item['explanation']}"
-            else:
-                item = random.choice(FORMULAS)
-                message_text = f"📐 GATE Civil Formula\n\n{item['title']}\n{item['formula']}\n{item['explanation']}"
-
-        # 3. Send
-        logger.info(f"Sending {msg_type} to {CHANNEL_ID}...")
-        await bot.send_message(chat_id=CHANNEL_ID, text=message_text)
-        logger.info("Message sent successfully.")
+    # --- Part 2: Send Question (Quiz Poll) ---
+    try:
+        # Wait a bit so messages appear in order
+        await asyncio.sleep(2)
+        
+        ai_quiz = ai_service.get_ai_content("question")
+        
+        if ai_quiz and 'correct_option_id' in ai_quiz:
+            q = ai_quiz
+            logger.info(f"Sending Quiz to {CHANNEL_ID}...")
+            await bot.send_poll(
+                chat_id=CHANNEL_ID,
+                question=f"🏗️ {q['question']}",
+                options=q['options'],
+                type='quiz',
+                correct_option_id=q['correct_option_id'],
+                explanation=q.get('explanation', 'No explanation provided.'),
+                is_anonymous=True
+            )
+        else:
+            # Fallback to local text-based question if AI fails or returns bad format
+            logger.warning("AI Quiz failed or format invalid. Falling back to local text question.")
+            item = random.choice(QUESTIONS)
+            text = f"🏗️ GATE Civil Question (Fallback)\n\n{item['question']}\n\n"
+            for opt in item['options']:
+                text += f"{opt}\n"
+            text += "\n(Note: AI generation failed, so this is a static question.)"
+            await bot.send_message(chat_id=CHANNEL_ID, text=text)
 
     except Exception as e:
-        logger.error(f"Failed to send message: {e}")
+        logger.error(f"Failed to send quiz: {e}")
 
 if __name__ == "__main__":
     asyncio.run(send_daily_content())

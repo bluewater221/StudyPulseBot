@@ -34,11 +34,12 @@ Topics can include: Soil Mechanics, Fluid Mechanics, Structural Analysis, Enviro
 Ensure the question requires conceptual understanding or standard calculation.
 The output format must be a JSON object with this exact structure:
 {
-  "question": "The question text here",
-  "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"],
-  "answer": "A",
-  "explanation": "A clear explanation of the solution."
+  "question": "The question text here (max 300 chars)",
+  "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+  "correct_option_id": 0,
+  "explanation": "A clear explanation of the solution (max 200 chars)."
 }
+Note: correct_option_id must be an integer: 0 for 1st option, 1 for 2nd, etc.
 """
 
 FACT_PROMPT = """

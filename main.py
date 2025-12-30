@@ -8,7 +8,7 @@ import ai_service
 from dotenv import load_dotenv
 
 # Load env variables (Token, Channel ID)
-load_dotenv()
+load_dotenv(override=True)
 
 # Enable logging
 logging.basicConfig(
