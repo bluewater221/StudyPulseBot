@@ -1,32 +1,15 @@
 import os
-import google.generativeai as genai
 import json
-import random
+import requests
+import logging
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+logger = logging.getLogger(__name__)
 
-api_key = os.getenv("GEMINI_API_KEY")
-
-if api_key:
-    genai.configure(api_key=api_key)
-    
-    generation_config = {
-        "temperature": 1.0,
-        "top_p": 0.95,
-        "top_k": 40,
-        "max_output_tokens": 1024,
-        "response_mime_type": "application/json",
-    }
-
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
-        generation_config=generation_config,
-    )
-else:
-    model = None
-    print("Warning: GEMINI_API_KEY not found in environment variables.")
+API_KEY = os.getenv("GEMINI_API_KEY")
+URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={API_KEY}"
 
 QUESTION_PROMPT = """
 Generate a challenging multiple-choice question (MCQ) for the Civil Engineering GATE exam.
@@ -63,32 +46,52 @@ Output JSON:
 
 def get_ai_content(content_type):
     """
-    Generates content using Google Gemini.
+    Generates content using Google Gemini via REST API.
     content_type: 'question', 'fact', or 'formula'
     Returns: Dict or None
     """
-    if not model:
+    if not API_KEY:
+        logger.error("GEMINI_API_KEY not found.")
         return None
 
     try:
-        prompt = ""
+        prompt_text = ""
         if content_type == "question":
-            prompt = QUESTION_PROMPT
+            prompt_text = QUESTION_PROMPT
         elif content_type == "fact":
-             prompt = FACT_PROMPT
+             prompt_text = FACT_PROMPT
         elif content_type == "formula":
-             prompt = FORMULA_PROMPT
+             prompt_text = FORMULA_PROMPT
         else:
             return None
 
-        response = model.generate_content(prompt)
-        return json.loads(response.text)
+        headers = {'Content-Type': 'application/json'}
+        data = {
+            "contents": [{
+                "parts": [{"text": prompt_text}]
+            }],
+            "generationConfig": {
+                "response_mime_type": "application/json"
+            }
+        }
+
+        response = requests.post(URL, headers=headers, json=data)
+        
+        if response.status_code != 200:
+            logger.error(f"Gemini API Error: {response.status_code} - {response.text}")
+            return None
+            
+        result = response.json()
+        # Parse response
+        # Structure: result['candidates'][0]['content']['parts'][0]['text']
+        raw_text = result['candidates'][0]['content']['parts'][0]['text']
+        return json.loads(raw_text)
 
     except Exception as e:
-        print(f"AI Generation Error: {e}")
+        logger.error(f"AI Generation Error: {e}")
         return None
 
 if __name__ == "__main__":
-    # Test the service
-    print("Testing AI Service...")
+    # Test
     print(get_ai_content("question"))
+
