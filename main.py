@@ -11,6 +11,8 @@ from content import QUESTIONS, FACTS, FORMULAS, EXERCISE_TIPS, HYGIENE_TIPS, GEN
 import ai_service
 import sheets
 from dotenv import load_dotenv
+from flask import Flask
+import threading
 
 # Load env variables (Token, Channel ID)
 load_dotenv(override=True)
@@ -250,8 +252,8 @@ async def generate_question(topic: Optional[str] = None, difficulty: str = "medi
         "difficulty": diff
     }
 
-async def generate_fact() -> str:
-    """Generate a formatted fact message."""
+async def generate_fact() -> tuple[str, InlineKeyboardMarkup]:
+    """Generate a formatted fact message with video link."""
     ai_content = await ai_service.get_ai_content("fact")
     
     if ai_content:
@@ -261,6 +263,14 @@ async def generate_fact() -> str:
         visual = ai_content.get('visual_hint', '')
         visual_text = f"\n🖼️ **Visual**: _{visual}_\n" if visual else ""
         
+        # YouTube Link
+        search_query = f"GATE Civil Engineering {topic_name} {ai_content.get('fact', '')[:20]}"
+        yt_url = f"https://www.youtube.com/results?search_query={search_query.replace(' ', '+')}"
+        keyboard = InlineKeyboardMarkup([
+             [InlineKeyboardButton("📺 Watch Video", url=yt_url)],
+             [InlineKeyboardButton("Got it! Next ➡️", callback_data="next_fact")]
+        ])
+
         return f"""
 {format_separator()}
 📝 **GATE Civil Key Note**
@@ -274,9 +284,11 @@ async def generate_fact() -> str:
 
 {format_separator()}
 _Save this for revision!_ 📌
-"""
+""", keyboard
     
+    # Fallback
     fact = random.choice(FACTS)
+    keyboard = get_study_keyboard("fact")
     return f"""
 {format_separator()}
 📝 **GATE Civil Key Note**
@@ -285,7 +297,7 @@ _Save this for revision!_ 📌
 💡 {fact}
 
 {format_separator()}
-"""
+""", keyboard
 
 def get_study_keyboard(next_type: str) -> InlineKeyboardMarkup:
     """Get keyboard for sequential study."""
@@ -293,7 +305,7 @@ def get_study_keyboard(next_type: str) -> InlineKeyboardMarkup:
         [InlineKeyboardButton("Got it! Next ➡️", callback_data=f"next_{next_type}")]
     ])
 
-async def generate_formula() -> str:
+async def generate_formula() -> tuple[str, InlineKeyboardMarkup]:
     """Generate a formatted formula message."""
     ai_content = await ai_service.get_ai_content("formula")
     
@@ -303,6 +315,14 @@ async def generate_formula() -> str:
         source = ai_content.get('source', 'Engineers Reference')
         visual = ai_content.get('visual_hint', '')
         visual_text = f"\n🖼️ **Visual**: _{visual}_\n" if visual else ""
+        
+        # YouTube Link
+        search_query = f"GATE Civil Engineering {topic_name} {ai_content.get('title', '')}"
+        yt_url = f"https://www.youtube.com/results?search_query={search_query.replace(' ', '+')}"
+        keyboard = InlineKeyboardMarkup([
+             [InlineKeyboardButton("📺 Watch Video", url=yt_url)],
+             [InlineKeyboardButton("Got it! Next ➡️", callback_data="next_formula")]
+        ])
         
         return f"""
 {format_separator()}
@@ -321,22 +341,25 @@ async def generate_formula() -> str:
 
 {format_separator()}
 _Memorize this formula!_ 🧠
-"""
+""", keyboard
     
+    # Fallback
     item = random.choice(FORMULAS)
+    topic_code = item.get('topic', 'General')
+    keyboard = get_study_keyboard("formula")
     return f"""
 {format_separator()}
 📐 **GATE Civil Formula**
 {format_separator()}
 
-📌 **{item['title']}**
+{get_topic_emoji(topic_code)} **{item['title']}**
 
 `{item['formula']}`
 
 📖 {item['explanation']}
 
 {format_separator()}
-"""
+""", keyboard
 
 # --- Inline Keyboards ---
 
@@ -379,33 +402,105 @@ def get_answer_keyboard(question_id: str) -> InlineKeyboardMarkup:
 
 # --- Job ---
 
+# --- Job ---
+
 async def send_hourly_message(context: ContextTypes.DEFAULT_TYPE):
-    """Sends a message every 1 hour."""
+    """Smart hourly schedule."""
     job = context.job
-    
-    # Rotate content type for variety
-    current_hour = datetime.now().hour
-    if current_hour % 3 == 0:
-        message_text = await generate_fact()
-        parse_mode = "Markdown"
-    elif current_hour % 3 == 1:
-        message_text, _ = await generate_question()
-        parse_mode = "Markdown"
-    else:
-        message_text = await generate_formula()
-        parse_mode = "Markdown"
-
     chat_id = job.chat_id if job.chat_id else CHANNEL_ID
-
+    
     if not chat_id:
         logger.error("No Chat ID provided for the job.")
         return
 
+    current_hour = datetime.now().hour
+    bot = context.bot
+    
+    # Schedule Distribution
     try:
-        await context.bot.send_message(chat_id=chat_id, text=message_text, parse_mode=parse_mode)
-        logger.info(f"Sent scheduled message to {chat_id}")
+        if 8 <= current_hour <= 9:
+             # Morning: Motivation + Key Formula
+             await send_motivation(bot, chat_id)
+             await asyncio.sleep(2)
+             await send_job_content(context, type="formula")
+        elif 12 <= current_hour <= 13:
+             # Lunch: Quick Quiz
+             await send_job_content(context, type="quiz")
+        elif 16 <= current_hour <= 17:
+             # Evening: Fact/Note
+             await send_job_content(context, type="fact")
+        elif 20 <= current_hour <= 21:
+             # Night: Quiz or Tip
+             if random.random() > 0.5:
+                 await send_job_content(context, type="quiz")
+             else:
+                 await send_wellness_tip(bot, chat_id) # Need to define this helper too
+                 
     except Exception as e:
         logger.error(f"Failed to send scheduled message: {e}")
+
+async def send_motivation(bot, chat_id):
+    """Send a motivational message."""
+    from content import MOTIVATIONAL_MESSAGES
+    msg = random.choice(MOTIVATIONAL_MESSAGES)
+    text = f"""
+{format_separator()}
+🌅 **GATE Motivation**
+{format_separator()}
+
+{msg}
+
+_Keep pushing!_ 💪
+{format_separator()}
+"""
+    await bot.send_message(chat_id=chat_id, text=text, parse_mode="Markdown")
+
+async def send_wellness_tip(bot, chat_id):
+    """Send a wellness tip."""
+    from content import GENERAL_HEALTH_TIPS
+    tip = random.choice(GENERAL_HEALTH_TIPS)
+    text = f"""
+{format_separator()}
+🍎 **Daily Wellness Tip**
+{format_separator()}
+
+{tip['name']}
+
+{tip['desc']}
+
+{format_separator()}
+_Your health matters!_ 🌟
+"""
+    await bot.send_message(chat_id=chat_id, text=text, parse_mode="Markdown")
+
+
+# Note: Other commands (fact, formula, quiz) are already defined as async handlers 
+# that take (update, context). We need to adapt them or call their core logic.
+# Since we updated main.py to reuse logic, let's just make sure we call the generation functions directly
+# inside the job if we can't easily mock the update object, OR just use the generation functions.
+
+# Redefining logic for job use to avoid Update object dependency
+async def send_job_content(context, type="fact"):
+    if type == "fact":
+        msg, kb = await generate_fact()
+        await context.bot.send_message(chat_id=CHANNEL_ID, text=msg, reply_markup=kb, parse_mode="Markdown")
+    elif type == "formula":
+        msg, kb = await generate_formula()
+        await context.bot.send_message(chat_id=CHANNEL_ID, text=msg, reply_markup=kb, parse_mode="Markdown")
+    elif type == "quiz":
+        # We need to replicate quiz_command logic partially or extract it
+        # For simplicity, let's use the text-based question for the job if quiz_command is complex
+        msg, q_data = await generate_question()
+        if q_data and 'correct_option_id' in q_data:
+             question_id = str(hash(q_data['question']))[:8]
+             context.user_data[f"q_{question_id}"] = q_data
+             await context.bot.send_message(
+                chat_id=CHANNEL_ID,
+                text=msg,
+                reply_markup=get_answer_keyboard(question_id),
+                parse_mode="Markdown"
+            )
+
 
 # --- Command Handlers ---
 
@@ -599,24 +694,24 @@ async def question_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def fact_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Sends a fact on demand."""
     await update.message.reply_text("🔄 _Generating key note..._", parse_mode="Markdown")
-    msg = await generate_fact()
-    await update.message.reply_text(msg, reply_markup=get_study_keyboard("fact"), parse_mode="Markdown")
+    msg, kb = await generate_fact()
+    await update.message.reply_text(msg, reply_markup=kb, parse_mode="Markdown")
 
 async def formula_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Sends a formula on demand."""
     await update.message.reply_text("🔄 _Generating formula..._", parse_mode="Markdown")
-    msg = await generate_formula()
-    await update.message.reply_text(msg, reply_markup=get_study_keyboard("formula"), parse_mode="Markdown")
+    msg, kb = await generate_formula()
+    await update.message.reply_text(msg, reply_markup=kb, parse_mode="Markdown")
 
 async def study_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Start a random study session (facts/formulas)."""
     next_type = random.choice(["fact", "formula"])
     await update.message.reply_text("🚀 _Starting your study session..._", parse_mode="Markdown")
     if next_type == "fact":
-        msg = await generate_fact()
+        msg, kb = await generate_fact()
     else:
-        msg = await generate_formula()
-    await update.message.reply_text(msg, reply_markup=get_study_keyboard(next_type), parse_mode="Markdown")
+        msg, kb = await generate_formula()
+    await update.message.reply_text(msg, reply_markup=kb, parse_mode="Markdown")
 
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show user's statistics."""
@@ -777,11 +872,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.edit_reply_markup(reply_markup=None)
         
         if next_type == "fact":
-            msg = await generate_fact()
-            await query.message.reply_text(msg, reply_markup=get_study_keyboard("fact"), parse_mode="Markdown")
+            msg, kb = await generate_fact()
+            await query.message.reply_text(msg, reply_markup=kb, parse_mode="Markdown")
         elif next_type == "formula":
-            msg = await generate_formula()
-            await query.message.reply_text(msg, reply_markup=get_study_keyboard("formula"), parse_mode="Markdown")
+            msg, kb = await generate_formula()
+            await query.message.reply_text(msg, reply_markup=kb, parse_mode="Markdown")
         else:
             msg, q_data = await generate_question()
             question_id = str(hash(msg))[:8]
@@ -1110,6 +1205,23 @@ def main() -> None:
         print(f"Bot started. Scheduled to send messages to {CHANNEL_ID} every hour.")
     else:
         print("Warning: TELEGRAM_CHANNEL_ID not set. Hourly job disabled. You can still use commands like /question.")
+
+    # --- Start Flask Server (Background) ---
+    app_flask = Flask(__name__)
+
+    @app_flask.route('/')
+    def home():
+        return "<h1>🏗️ GATE Civil Bot is Running!</h1><p>Status: Active 🟢</p>", 200
+
+    def run_flask():
+        port = int(os.environ.get("PORT", 8080))
+        app_flask.run(host='0.0.0.0', port=port)
+
+    # Start Flask in a separate thread to not block the bot
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+    print("Web server started in background.")
 
     # Run the bot until the user presses Ctrl-C
     application.run_polling(allowed_updates=Update.ALL_TYPES)

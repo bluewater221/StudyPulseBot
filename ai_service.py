@@ -12,15 +12,21 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 # Configuration
-API_KEY = os.getenv("GEMINI_API_KEY")
+API_KEY = os.getenv("GEMINI_API_KEY") # Primary
+GROQ_API_KEY = os.getenv("GROQ_API_KEY") # Backup
+try:
+    from groq import Groq
+except ImportError:
+    Groq = None
+
 REQUEST_TIMEOUT = 30  # seconds
 MAX_RETRIES = 3
 RETRY_DELAY = 2  # seconds
 
-if not API_KEY:
-    logger.warning("⚠️ GEMINI_API_KEY not set - AI features will be disabled")
+if not API_KEY and not GROQ_API_KEY:
+    logger.warning("⚠️ No valid API keys (GEMINI or GROQ) set - AI features will be disabled")
 
-URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={API_KEY}"
+URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY}"
 
 # Topic definitions for GATE Civil Engineering
 TOPICS = {
@@ -112,63 +118,77 @@ Output JSON:
 """
 
 async def _make_api_request(prompt_text: str) -> Optional[Dict[str, Any]]:
-    """Make API request with retry logic and timeout handling."""
-    headers = {'Content-Type': 'application/json'}
-    data = {
-        "contents": [{
-            "parts": [{"text": prompt_text}]
-        }],
-        "generationConfig": {
-            "response_mime_type": "application/json"
-        }
-    }
-    last_error = None
-    async with aiohttp.ClientSession() as session:
-        for attempt in range(MAX_RETRIES):
-            try:
-                async with session.post(
-                    URL, 
-                    headers=headers, 
-                    json=data, 
-                    timeout=REQUEST_TIMEOUT
-                ) as response:
-                    
-                    if response.status == 200:
-                        result = await response.json()
-                        raw_text = result['candidates'][0]['content']['parts'][0]['text']
-                        return json.loads(raw_text)
-                    elif response.status == 429:
-                        logger.warning(f"Rate limited, waiting {RETRY_DELAY * (attempt + 2)}s...")
-                        await asyncio.sleep(RETRY_DELAY * (attempt + 2))
-                    else:
-                        resp_text = await response.text()
-                        logger.error(f"Gemini API Error: {response.status} - {resp_text[:200]}")
-                        return None
-                        
-            except asyncio.TimeoutError:
-                last_error = "Request timed out"
-                logger.warning(f"Attempt {attempt + 1}/{MAX_RETRIES}: Request timed out")
-            except aiohttp.ClientError as e:
-                last_error = f"Connection error: {e}"
-                logger.warning(f"Attempt {attempt + 1}/{MAX_RETRIES}: Connection error")
-            except json.JSONDecodeError as e:
-                last_error = f"JSON parse error: {e}"
-                logger.error(f"Failed to parse AI response: {e}")
-                return None
-            except KeyError as e:
-                last_error = f"Unexpected response format: {e}"
-                logger.error(f"Unexpected API response format: {e}")
-                return None
-            except Exception as e:
-                last_error = str(e)
-                logger.error(f"Unexpected error: {e}", exc_info=True)
-                return None
-            
-            # Wait before retry
-            if attempt < MAX_RETRIES - 1:
-                await asyncio.sleep(RETRY_DELAY * (attempt + 1))
+    """Make API request with Gemini (Primary) and retry logic, falling back to Groq."""
     
-    logger.error(f"All {MAX_RETRIES} attempts failed. Last error: {last_error}")
+    # 1. Try Gemini
+    if API_KEY:
+        headers = {'Content-Type': 'application/json'}
+        data = {
+            "contents": [{"parts": [{"text": prompt_text}]}],
+            "generationConfig": {"response_mime_type": "application/json"}
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            for attempt in range(MAX_RETRIES):
+                try:
+                    async with session.post(URL, headers=headers, json=data, timeout=REQUEST_TIMEOUT) as response:
+                        if response.status == 200:
+                            result = await response.json()
+                            raw_text = result['candidates'][0]['content']['parts'][0]['text']
+                            return json.loads(raw_text)
+                        
+                        logger.warning(f"Gemini Attempt {attempt+1} failed ({response.status})")
+                        if attempt < MAX_RETRIES - 1:
+                            await asyncio.sleep(2)
+                            
+                except Exception as e:
+                    logger.error(f"Gemini connection error: {e}")
+    
+    # 2. Fallback to Groq
+    if GROQ_API_KEY and Groq:
+        logger.info("Falling back to Groq API...")
+        try:
+            client = Groq(api_key=GROQ_API_KEY)
+            completion = client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt_text + "\nReturn ONLY valid JSON."}],
+                model="llama-3.3-70b-versatile",
+                response_format={"type": "json_object"}
+            )
+            return json.loads(completion.choices[0].message.content)
+        except Exception as e:
+            logger.error(f"Groq fallback failed: {e}")
+
+    # 3. Fallback to OpenRouter (New)
+    OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+    if OPENROUTER_API_KEY:
+        logger.info("Falling back to OpenRouter API...")
+        try:
+            headers = {
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+                 "HTTP-Referer": "https://github.com/antigravity", # Optional
+            }
+            data = {
+                "model": "deepseek/deepseek-chat", # Affordable and good
+                "messages": [{"role": "user", "content": prompt_text + "\nReturn ONLY valid JSON."}],
+                "response_format": {"type": "json_object"}
+            }
+            async with aiohttp.ClientSession() as session:
+                 async with session.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data, timeout=REQUEST_TIMEOUT) as response:
+                        if response.status == 200:
+                            result = await response.json()
+                            content = result['choices'][0]['message']['content']
+                            # Clean markdown if present
+                            if content.startswith("```json"):
+                                content = content.replace("```json", "").replace("```", "")
+                            return json.loads(content)
+                        else:
+                            logger.error(f"OpenRouter failed with {response.status}")
+                            
+        except Exception as e:
+            logger.error(f"OpenRouter fallback failed: {e}")
+
+    logger.error(f"All AI attempts failed.")
     return None
 
 async def get_ai_content(content_type: str, topic: Optional[str] = None, difficulty: str = "medium") -> Optional[Dict[str, Any]]:
@@ -183,8 +203,8 @@ async def get_ai_content(content_type: str, topic: Optional[str] = None, difficu
     Returns:
         Dict with generated content or None on failure
     """
-    if not API_KEY:
-        logger.error("GEMINI_API_KEY not found.")
+    if not API_KEY and not GROQ_API_KEY:
+        logger.error("No AI credentials found.")
         return None
 
     if content_type == "question":
@@ -200,6 +220,108 @@ async def get_ai_content(content_type: str, topic: Optional[str] = None, difficu
         return None
     
     return await _make_api_request(prompt_text)
+
+# --- Caching Mechanism ---
+
+CACHE_FILE = "ai_content_cache.json"
+
+def load_cache() -> Dict[str, list]:
+    """Load the local cache file."""
+    if os.path.exists(CACHE_FILE):
+        try:
+            with open(CACHE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Failed to load cache: {e}")
+    return {}
+
+def save_cache(cache: Dict[str, list]):
+    """Save to the local cache file."""
+    try:
+        with open(CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(cache, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Failed to save cache: {e}")
+
+def add_to_cache(content_type: str, content: Dict[str, Any]):
+    """Add new content to cache, avoiding duplicates."""
+    cache = load_cache()
+    if content_type not in cache:
+        cache[content_type] = []
+    
+    # Avoid duplicates based on key fields
+    is_duplicate = False
+    for item in cache[content_type]:
+        if content_type == "question" and item.get("question") == content.get("question"):
+            is_duplicate = True
+            break
+        elif content_type == "fact" and item.get("fact") == content.get("fact"):
+            is_duplicate = True
+            break
+        elif content_type == "formula" and item.get("title") == content.get("title"):
+             is_duplicate = True
+             break
+        elif content_type == "language" and item.get("word") == content.get("word"):
+             is_duplicate = True
+             break
+    
+    if not is_duplicate:
+        cache[content_type].append(content)
+        # Limit cache size per type (optional, keep last 100)
+        if len(cache[content_type]) > 100:
+            cache[content_type] = cache[content_type][-100:]
+        save_cache(cache)
+        logger.info(f"Cached new {content_type}")
+
+def get_from_cache(content_type: str) -> Optional[Dict[str, Any]]:
+    """Retrieve random item from cache."""
+    cache = load_cache()
+    items = cache.get(content_type, [])
+    if items:
+        # Try to pick one that hasn't been used recently? 
+        # For now, just random is better than static fallback
+        return random.choice(items)
+    return None
+
+async def get_ai_content(content_type: str, topic: Optional[str] = None, difficulty: str = "medium") -> Optional[Dict[str, Any]]:
+    """
+    Generates content using Google Gemini via REST API.
+    Retries with Cache if API fails.
+    """
+    if not API_KEY and not GROQ_API_KEY:
+        logger.error("No AI credentials found. checking cache...")
+        return get_from_cache(content_type)
+
+    prompt_text = ""
+    if content_type == "question":
+        prompt_text = get_question_prompt(topic, difficulty)
+    elif content_type == "fact":
+        prompt_text = FACT_PROMPT
+    elif content_type == "formula":
+        prompt_text = FORMULA_PROMPT
+    elif content_type == "language":
+        prompt_text = LANGUAGE_PROMPT
+    else:
+        logger.error(f"Unknown content type: {content_type}")
+        return None
+    
+    # Try API
+    result = await _make_api_request(prompt_text)
+    
+    if result:
+        # Save to cache for future
+        add_to_cache(content_type, result)
+        return result
+    
+    # Fallback to Cache
+    logger.warning(f"AI API failed for {content_type}. Attempting to use cached content.")
+    cached_item = get_from_cache(content_type)
+    
+    if cached_item:
+        logger.info(f"Served {content_type} from local cache.")
+        return cached_item
+        
+    return None
 
 def get_available_topics() -> Dict[str, str]:
     """Return available topics for selection."""
