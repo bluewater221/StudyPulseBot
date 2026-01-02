@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, ContextTypes, CommandHandler, CallbackQueryHandler
+from telegram.error import BadRequest
 from content import QUESTIONS, FACTS, FORMULAS, EXERCISE_TIPS, HYGIENE_TIPS, GENERAL_HEALTH_TIPS, LANGUAGE_FALLBACKS
 import ai_service
 import sheets
@@ -181,6 +182,25 @@ def update_user_stats(user_id: int, is_correct: bool):
     
     stats["last_answer_date"] = today.strftime("%Y-%m-%d")
     save_data()
+
+# --- Safe Message Sender ---
+
+async def send_safe_message(bot, chat_id, text, **kwargs):
+    """
+    Safely send a message, falling back to plain text if Markdown parsing fails.
+    """
+    try:
+        await bot.send_message(chat_id=chat_id, text=text, **kwargs)
+    except BadRequest as e:
+        if "Can't parse entities" in str(e):
+            logger.warning(f"Markdown parsing failed. Falling back to plain text. Error: {e}")
+            # Remove parse_mode to send as plain text
+            kwargs.pop('parse_mode', None)
+            # Add a small note about formatting
+            text += "\n\n(Note: Formatting removed due to display error)"
+            await bot.send_message(chat_id=chat_id, text=text, **kwargs)
+        else:
+            raise e
 
 # --- Message Generators ---
 
@@ -483,10 +503,10 @@ _Your health matters!_ 🌟
 async def send_job_content(context, type="fact"):
     if type == "fact":
         msg, kb = await generate_fact()
-        await context.bot.send_message(chat_id=CHANNEL_ID, text=msg, reply_markup=kb, parse_mode="Markdown")
+        await send_safe_message(context.bot, CHANNEL_ID, msg, reply_markup=kb, parse_mode="Markdown")
     elif type == "formula":
         msg, kb = await generate_formula()
-        await context.bot.send_message(chat_id=CHANNEL_ID, text=msg, reply_markup=kb, parse_mode="Markdown")
+        await send_safe_message(context.bot, CHANNEL_ID, msg, reply_markup=kb, parse_mode="Markdown")
     elif type == "quiz":
         # We need to replicate quiz_command logic partially or extract it
         # For simplicity, let's use the text-based question for the job if quiz_command is complex
@@ -494,9 +514,11 @@ async def send_job_content(context, type="fact"):
         if q_data and 'correct_option_id' in q_data:
              question_id = str(hash(q_data['question']))[:8]
              context.user_data[f"q_{question_id}"] = q_data
-             await context.bot.send_message(
-                chat_id=CHANNEL_ID,
-                text=msg,
+             context.user_data[f"q_{question_id}"] = q_data
+             await send_safe_message(
+                context.bot,
+                CHANNEL_ID,
+                msg,
                 reply_markup=get_answer_keyboard(question_id),
                 parse_mode="Markdown"
             )
