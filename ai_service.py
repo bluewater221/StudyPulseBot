@@ -2,7 +2,8 @@ import os
 import json
 import aiohttp
 import logging
-import asyncio
+import random
+import re
 from typing import Optional, Dict, Any
 from functools import lru_cache
 from dotenv import load_dotenv
@@ -117,6 +118,20 @@ Output JSON:
 }
 """
 
+def repair_json(text: str) -> str:
+    """Attempt to repair common AI JSON formatting issues."""
+    # Remove markdown code blocks
+    text = re.sub(r'```json\s*', '', text)
+    text = re.sub(r'```\s*', '', text)
+    
+    text = text.strip()
+    
+    # Handle truncated JSON (very basic)
+    if text.startswith('{') and not text.endswith('}'):
+        text += '}'
+        
+    return text
+
 async def _make_api_request(prompt_text: str) -> Optional[Dict[str, Any]]:
     """Make API request with Gemini (Primary) and retry logic, falling back to Groq."""
     
@@ -135,7 +150,7 @@ async def _make_api_request(prompt_text: str) -> Optional[Dict[str, Any]]:
                         if response.status == 200:
                             result = await response.json()
                             raw_text = result['candidates'][0]['content']['parts'][0]['text']
-                            return json.loads(raw_text)
+                            return json.loads(repair_json(raw_text))
                         
                         logger.warning(f"Gemini Attempt {attempt+1} failed ({response.status})")
                         if attempt < MAX_RETRIES - 1:
@@ -154,7 +169,7 @@ async def _make_api_request(prompt_text: str) -> Optional[Dict[str, Any]]:
                 model="llama-3.3-70b-versatile",
                 response_format={"type": "json_object"}
             )
-            return json.loads(completion.choices[0].message.content)
+            return json.loads(repair_json(completion.choices[0].message.content))
         except Exception as e:
             logger.error(f"Groq fallback failed: {e}")
 
@@ -177,11 +192,7 @@ async def _make_api_request(prompt_text: str) -> Optional[Dict[str, Any]]:
                  async with session.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data, timeout=REQUEST_TIMEOUT) as response:
                         if response.status == 200:
                             result = await response.json()
-                            content = result['choices'][0]['message']['content']
-                            # Clean markdown if present
-                            if content.startswith("```json"):
-                                content = content.replace("```json", "").replace("```", "")
-                            return json.loads(content)
+                            return json.loads(repair_json(content))
                         else:
                             logger.error(f"OpenRouter failed with {response.status}")
                             
@@ -222,35 +233,6 @@ async def _make_api_request(prompt_text: str) -> Optional[Dict[str, Any]]:
     logger.error(f"All AI attempts failed.")
     return None
 
-async def get_ai_content(content_type: str, topic: Optional[str] = None, difficulty: str = "medium") -> Optional[Dict[str, Any]]:
-    """
-    Generates content using Google Gemini via REST API.
-    
-    Args:
-        content_type: 'question', 'fact', or 'formula'
-        topic: Optional topic code (SM, FM, SA, etc.)
-        difficulty: 'easy', 'medium', or 'hard' (for questions only)
-    
-    Returns:
-        Dict with generated content or None on failure
-    """
-    if not API_KEY and not GROQ_API_KEY:
-        logger.error("No AI credentials found.")
-        return None
-
-    if content_type == "question":
-        prompt_text = get_question_prompt(topic, difficulty)
-    elif content_type == "fact":
-        prompt_text = FACT_PROMPT
-    elif content_type == "formula":
-        prompt_text = FORMULA_PROMPT
-    elif content_type == "language":
-        prompt_text = LANGUAGE_PROMPT
-    else:
-        logger.error(f"Unknown content type: {content_type}")
-        return None
-    
-    return await _make_api_request(prompt_text)
 
 # --- Caching Mechanism ---
 

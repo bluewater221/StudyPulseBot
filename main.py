@@ -1211,7 +1211,11 @@ def main() -> None:
 
     @app_flask.route('/')
     def home():
-        return "<h1>🏗️ GATE Civil Bot is Running!</h1><p>Status: Active 🟢</p>", 200
+        return "OK", 200
+
+    @app_flask.route('/ping')
+    def ping():
+        return "pong", 200
 
     def run_flask():
         port = int(os.environ.get("PORT", 8080))
