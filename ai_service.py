@@ -185,8 +185,39 @@ async def _make_api_request(prompt_text: str) -> Optional[Dict[str, Any]]:
                         else:
                             logger.error(f"OpenRouter failed with {response.status}")
                             
+                            
         except Exception as e:
             logger.error(f"OpenRouter fallback failed: {e}")
+
+    # 4. Fallback to HuggingFace (New)
+    HF_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
+    if HF_API_KEY:
+        logger.info("Falling back to HuggingFace API...")
+        try:
+            # Using meta-llama/Meta-Llama-3-8B-Instruct
+            API_URL = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
+            headers = {"Authorization": f"Bearer {HF_API_KEY}"}
+            payload = {
+                "inputs": prompt_text + "\nReturn ONLY valid JSON.",
+                "parameters": {"max_new_tokens": 512, "return_full_text": False}
+            }
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(API_URL, headers=headers, json=payload, timeout=REQUEST_TIMEOUT) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        content = result[0]['generated_text']
+                        # Try to extract JSON from text if it's mixed
+                        start_idx = content.find('{')
+                        end_idx = content.rfind('}') + 1
+                        if start_idx != -1 and end_idx != -1:
+                            content = content[start_idx:end_idx]
+                        return json.loads(content)
+                    else:
+                         logger.error(f"HuggingFace failed with {response.status}")
+
+        except Exception as e:
+            logger.error(f"HuggingFace fallback failed: {e}")
 
     logger.error(f"All AI attempts failed.")
     return None
