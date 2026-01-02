@@ -473,7 +473,7 @@ async def send_motivation(bot, chat_id):
 _Keep pushing!_ 💪
 {format_separator()}
 """
-    await bot.send_message(chat_id=chat_id, text=text, parse_mode="Markdown")
+    await send_safe_message(bot, chat_id, text, parse_mode="Markdown")
 
 async def send_wellness_tip(bot, chat_id):
     """Send a wellness tip."""
@@ -491,7 +491,7 @@ async def send_wellness_tip(bot, chat_id):
 {format_separator()}
 _Your health matters!_ 🌟
 """
-    await bot.send_message(chat_id=chat_id, text=text, parse_mode="Markdown")
+    await send_safe_message(bot, chat_id, text, parse_mode="Markdown")
 
 
 # Note: Other commands (fact, formula, quiz) are already defined as async handlers 
