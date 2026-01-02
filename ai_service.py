@@ -192,6 +192,7 @@ async def _make_api_request(prompt_text: str) -> Optional[Dict[str, Any]]:
                  async with session.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data, timeout=REQUEST_TIMEOUT) as response:
                         if response.status == 200:
                             result = await response.json()
+                            content = result['choices'][0]['message']['content']
                             return json.loads(repair_json(content))
                         else:
                             logger.error(f"OpenRouter failed with {response.status}")
