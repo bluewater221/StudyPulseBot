@@ -1228,7 +1228,11 @@ def main() -> None:
     print("Web server started in background.")
 
     # Run the bot until the user presses Ctrl-C
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    # Run the bot until the user presses Ctrl-C
+    try:
+        application.run_polling(allowed_updates=Update.ALL_TYPES)
+    except Exception as e:
+        logger.critical(f"Bot crashed with error: {e}", exc_info=True)
 
 
 if __name__ == "__main__":

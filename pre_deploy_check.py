@@ -24,9 +24,12 @@ def check_env_vars():
     missing = [v for v in critical_vars if not os.getenv(v)]
     
     if missing:
-        logger.warning(f"Missing environment variables: {', '.join(missing)}")
-        # We don't necessarily exit 1 here in case they are set in Render dashboard but not build env
-        # However, for a strict check, we could.
+        logger.warning(f"⚠️ Missing environment variables: {', '.join(missing)}")
+        logger.warning("This is expected during the BUILD phase on Render.")
+        logger.warning("Ensure these are set in the Render Dashboard for RUNTIME.")
+        # Do NOT fail the build for this.
+    else:
+        logger.info("Environment variables check passed.")
     return True
 
 def main():
