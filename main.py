@@ -101,24 +101,29 @@ def get_difficulty_stars(difficulty: str) -> str:
 # --- User Stats ---
 
 def get_user_stats(user_id: int) -> Dict[str, Any]:
-    """Get or create user stats."""
+    """Get or create user stats (loads from Google Sheets if available)."""
     if user_id not in user_stats:
-        user_stats[user_id] = {
-            "correct": 0,
-            "incorrect": 0,
-            "total": 0,
-            "streak": 0,
-            "last_answer_date": None,
-            "preferred_topic": None,
-            "weekly_correct": 0,
-            "weekly_total": 0,
-            "fastest_answer": None,  # seconds
-            "daily_completed": None  # date of last daily challenge
-        }
+        # Try to load from Google Sheets first
+        sheet_stats = sheets.load_user_stats(user_id)
+        if sheet_stats:
+            user_stats[user_id] = sheet_stats
+        else:
+            user_stats[user_id] = {
+                "correct": 0,
+                "incorrect": 0,
+                "total": 0,
+                "streak": 0,
+                "last_answer_date": None,
+                "preferred_topic": None,
+                "weekly_correct": 0,
+                "weekly_total": 0,
+                "fastest_answer": None,
+                "daily_completed": None
+            }
     return user_stats[user_id]
 
 def update_leaderboard(user_id: int, username: str, is_correct: bool):
-    """Update weekly leaderboard."""
+    """Update weekly leaderboard (saves to Google Sheets)."""
     if user_id not in weekly_leaderboard:
         weekly_leaderboard[user_id] = {
             "name": username,
@@ -130,8 +135,16 @@ def update_leaderboard(user_id: int, username: str, is_correct: bool):
     weekly_leaderboard[user_id]["total"] += 1
     if is_correct:
         weekly_leaderboard[user_id]["correct"] += 1
-        weekly_leaderboard[user_id]["score"] += 10  # 10 points per correct answer
-    weekly_leaderboard[user_id]["name"] = username  # Keep name updated
+        weekly_leaderboard[user_id]["score"] += 10
+    weekly_leaderboard[user_id]["name"] = username
+    
+    # Save to Google Sheets for persistence
+    sheets.save_leaderboard_entry(
+        user_id, username,
+        weekly_leaderboard[user_id]["correct"],
+        weekly_leaderboard[user_id]["total"],
+        weekly_leaderboard[user_id]["score"]
+    )
     save_data()
 
 def get_leaderboard_text() -> str:
@@ -159,29 +172,32 @@ def get_leaderboard_text() -> str:
     return "\n\n".join(lines)
 
 def update_user_stats(user_id: int, is_correct: bool):
-    """Update user statistics after answering."""
+    """Update user statistics after answering (saves to Google Sheets)."""
     stats = get_user_stats(user_id)
     today = datetime.now().date()
-    last_date = stats["last_answer_date"]
+    last_date = stats.get("last_answer_date")
     
     # Handle string from JSON
     if isinstance(last_date, str):
         last_date = datetime.strptime(last_date, "%Y-%m-%d").date()
     
+    stats["total"] = stats.get("total", 0) + 1
+    
     if is_correct:
-        stats["correct"] += 1
+        stats["correct"] = stats.get("correct", 0) + 1
         if last_date is None:
             stats["streak"] = 1
         elif last_date == today - timedelta(days=1):
-            stats["streak"] += 1
+            stats["streak"] = stats.get("streak", 0) + 1
         elif last_date < today - timedelta(days=1):
             stats["streak"] = 1
-        # If it's today, keep current streak
     else:
-        stats["incorrect"] += 1
-        # Optionally reset streak on wrong answer? Let's keep it daily for now.
+        stats["incorrect"] = stats.get("incorrect", 0) + 1
     
     stats["last_answer_date"] = today.strftime("%Y-%m-%d")
+    
+    # Save to Google Sheets for persistence
+    sheets.save_user_stats(user_id, stats)
     save_data()
 
 # --- Safe Message Sender ---
