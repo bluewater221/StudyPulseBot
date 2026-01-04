@@ -152,6 +152,9 @@ async def _make_api_request(prompt_text: str) -> Optional[Dict[str, Any]]:
                             result = await response.json()
                             raw_text = result['candidates'][0]['content']['parts'][0]['text']
                             return json.loads(repair_json(raw_text))
+                        elif response.status == 429:
+                            logger.warning("Gemini Quota Exhausted (429). Failing over immediately...")
+                            break  # Fail over to backups
                         
                         logger.warning(f"Gemini Attempt {attempt+1} failed ({response.status})")
                         if attempt < MAX_RETRIES - 1:

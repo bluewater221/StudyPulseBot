@@ -1,0 +1,78 @@
+
+[1mStarting API Health Check for Antigravity Bot...[0m
+
+[1m--- Telegram Bot Check ---[0m
+[92m[OK] Connected: @study333_bot (Study)[0m
+
+[1m--- Google Gemini AI Check ---[0m
+[91m[ERROR] Gemini Error: 429 - {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/usage?tab=rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\nPlease retry in 22.556952349s.",
+    "status": "RESOURCE_EXHAUSTED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.Help",
+        "links": [
+          {
+            "description": "Learn more about Gemini API quotas",
+            "url": "https://ai.google.dev/gemini-api/docs/rate-limits"
+          }
+        ]
+      },
+      {
+        "@type": "type.googleapis.com/google.rpc.QuotaFailure",
+        "violations": [
+          {
+            "quotaMetric": "generativelanguage.googleapis.com/generate_content_free_tier_requests",
+            "quotaId": "GenerateRequestsPerDayPerProjectPerModel-FreeTier",
+            "quotaDimensions": {
+              "location": "global",
+              "model": "gemini-2.0-flash"
+            }
+          },
+          {
+            "quotaMetric": "generativelanguage.googleapis.com/generate_content_free_tier_requests",
+            "quotaId": "GenerateRequestsPerMinutePerProjectPerModel-FreeTier",
+            "quotaDimensions": {
+              "model": "gemini-2.0-flash",
+              "location": "global"
+            }
+          },
+          {
+            "quotaMetric": "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count",
+            "quotaId": "GenerateContentInputTokensPerModelPerMinute-FreeTier",
+            "quotaDimensions": {
+              "location": "global",
+              "model": "gemini-2.0-flash"
+            }
+          }
+        ]
+      },
+      {
+        "@type": "type.googleapis.com/google.rpc.RetryInfo",
+        "retryDelay": "22s"
+      }
+    ]
+  }
+}
+[0m
+
+[1m--- Groq AI Check ---[0m
+[92m[OK] Groq: Groq is Online[0m
+
+[1m--- OpenRouter Check ---[0m
+[91m[ERROR] OpenRouter Error: 429 - {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"google/gemini-2.0-flash-exp:free is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google"}},"user_id":"user_37hT4nBwaC23y95hoHUwhFKyUln"}[0m
+
+[1m--- HuggingFace Check ---[0m
+[92m[OK] Connected as: bluerex9[0m
+
+[1m--- Google Sheets Check ---[0m
+[92m[OK] Successfully opened Sheet: 'AntigravityNotes'[0m
+
+[1m--- Execution Summary ---[0m
+Total Checks: 6
+Passed: 4
+Failed/Skipped: 2
+
+[93m[1mSome systems are offline or misconfigured.[0m

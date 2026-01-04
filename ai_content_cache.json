@@ -14,6 +14,21 @@
       "difficulty": "medium",
       "source": "GATE previous year questions",
       "visual_hint": "Void ratio formula graph"
+    },
+    {
+      "question": "A soil has a void ratio of 0.8. What is its porosity?",
+      "options": [
+        "0.44",
+        "0.45",
+        "0.46",
+        "0.47"
+      ],
+      "correct_option_id": 0,
+      "explanation": "Porosity = void ratio / (1 + void ratio) = 0.8 / 1.8 = 0.44",
+      "topic": "SM",
+      "difficulty": "medium",
+      "source": "NPTEL",
+      "visual_hint": "soil pore space diagram"
     }
   ]
 }

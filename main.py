@@ -433,15 +433,18 @@ async def send_hourly_message(context: ContextTypes.DEFAULT_TYPE):
         logger.error("No Chat ID provided for the job.")
         return
 
-    current_hour = datetime.now().hour
+    # Calculate current hour in IST (UTC+5:30)
+    # Most cloud servers use UTC
+    now_utc = datetime.utcnow()
+    ist_now = now_utc + timedelta(hours=5, minutes=30)
+    current_hour = ist_now.hour
+    
     bot = context.bot
     
-    # Schedule Distribution
+    # Schedule Distribution (IST)
     try:
         if 8 <= current_hour <= 9:
-             # Morning: Motivation + Key Formula
-             await send_motivation(bot, chat_id)
-             await asyncio.sleep(2)
+             # Morning: Key Formula only
              await send_job_content(context, type="formula")
         elif 12 <= current_hour <= 13:
              # Lunch: Quick Quiz
@@ -450,11 +453,11 @@ async def send_hourly_message(context: ContextTypes.DEFAULT_TYPE):
              # Evening: Fact/Note
              await send_job_content(context, type="fact")
         elif 20 <= current_hour <= 21:
-             # Night: Quiz or Tip
+             # Night: Quiz or Exercise Tip
              if random.random() > 0.5:
                  await send_job_content(context, type="quiz")
              else:
-                 await send_wellness_tip(bot, chat_id) # Need to define this helper too
+                 await send_exercise_tip(bot, chat_id)
                  
     except Exception as e:
         logger.error(f"Failed to send scheduled message: {e}")
@@ -475,13 +478,12 @@ _Keep pushing!_ 💪
 """
     await send_safe_message(bot, chat_id, text, parse_mode="Markdown")
 
-async def send_wellness_tip(bot, chat_id):
-    """Send a wellness tip."""
-    from content import GENERAL_HEALTH_TIPS
-    tip = random.choice(GENERAL_HEALTH_TIPS)
+async def send_exercise_tip(bot, chat_id):
+    """Send an exercise tip."""
+    tip = random.choice(EXERCISE_TIPS)
     text = f"""
 {format_separator()}
-🍎 **Daily Wellness Tip**
+🏃 **Exercise Tip**
 {format_separator()}
 
 {tip['name']}
@@ -489,7 +491,7 @@ async def send_wellness_tip(bot, chat_id):
 {tip['desc']}
 
 {format_separator()}
-_Your health matters!_ 🌟
+_Take a break and move!_ 💪
 """
     await send_safe_message(bot, chat_id, text, parse_mode="Markdown")
 
