@@ -8,9 +8,10 @@ from typing import Optional, Dict, Any
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, ContextTypes, CommandHandler, CallbackQueryHandler
 from telegram.error import BadRequest
-from content import QUESTIONS, FACTS, FORMULAS, EXERCISE_TIPS, HYGIENE_TIPS, GENERAL_HEALTH_TIPS, LANGUAGE_FALLBACKS
+from content import QUESTIONS, FACTS, FORMULAS, EXERCISE_TIPS, HYGIENE_TIPS, GENERAL_HEALTH_TIPS, LANGUAGE_FALLBACKS, INTERVIEW_TIPS, INTERVIEW_QUESTIONS
 import ai_service
 import sheets
+import job_alerts
 from dotenv import load_dotenv
 from flask import Flask
 import threading
@@ -590,6 +591,12 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • `/mynotes` - View all your saved notes
 • `/notefor SM` - Get notes for a specific topic
 
+**💼 Career & Jobs:**
+• `/jobs` - Latest govt job alerts (SSC, UPSC, Railway, Bank)
+• `/jobs railway` - Jobs by category
+• `/interview` - Interview tips for govt jobs
+• `/interview question` - Practice interview questions
+
 **📊 Progress:**
 • `/stats` - Your performance stats
 
@@ -688,6 +695,74 @@ async def language_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 {format_separator()}
 _Consistency is key!_ 🗝️
+"""
+    await update.message.reply_text(text, parse_mode="Markdown")
+
+async def jobs_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Sends latest govt job alerts."""
+    category = "central"
+    valid_categories = ["central", "railway", "bank", "ssc", "upsc", "state"]
+    
+    if context.args and context.args[0].lower() in valid_categories:
+        category = context.args[0].lower()
+    
+    await update.message.reply_text("🔄 _Fetching latest job alerts..._", parse_mode="Markdown")
+    
+    jobs = await job_alerts.get_job_alerts(category, limit=5)
+    
+    if jobs:
+        emoji = job_alerts.get_category_emoji(category)
+        text = f"""
+{format_separator()}
+{emoji} **Latest {category.upper()} Jobs**
+{format_separator()}
+
+"""
+        for i, job in enumerate(jobs, 1):
+            text += f"**{i}.** [{job['title']}]({job['link']})\n📅 {job['date']}\n\n"
+        
+        text += f"""
+{format_separator()}
+_/jobs [category]: central, railway, bank, ssc, upsc, state_
+"""
+        await update.message.reply_text(text, parse_mode="Markdown", disable_web_page_preview=True)
+    else:
+        await update.message.reply_text("❌ Could not fetch job alerts. Try again later.", parse_mode="Markdown")
+
+async def interview_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Sends interview tips or questions."""
+    mode = "tip"
+    if context.args and context.args[0].lower() in ["question", "q", "questions"]:
+        mode = "question"
+    
+    if mode == "question":
+        item = random.choice(INTERVIEW_QUESTIONS)
+        text = f"""
+{format_separator()}
+❓ **Interview Question**
+{format_separator()}
+
+🎤 **Q:** {item['q']}
+
+💡 **How to Answer:**
+{item['tip']}
+
+{format_separator()}
+_/interview question for more questions_
+"""
+    else:
+        item = random.choice(INTERVIEW_TIPS)
+        text = f"""
+{format_separator()}
+🎯 **Interview Tip**
+{format_separator()}
+
+{item['name']}
+
+{item['desc']}
+
+{format_separator()}
+_/interview question for practice questions_
 """
     await update.message.reply_text(text, parse_mode="Markdown")
 
@@ -1227,6 +1302,8 @@ def main() -> None:
     application.add_handler(CommandHandler("addnote", addnote_command))
     application.add_handler(CommandHandler("mynotes", mynotes_command))
     application.add_handler(CommandHandler("notefor", notefor_command))
+    application.add_handler(CommandHandler("jobs", jobs_command))
+    application.add_handler(CommandHandler("interview", interview_command))
     
     # Add Callback Query Handler for inline keyboards
     application.add_handler(CallbackQueryHandler(button_callback))

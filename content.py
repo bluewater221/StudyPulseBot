@@ -670,3 +670,40 @@ LANGUAGE_FALLBACKS = [
     }
 ]
 
+# Interview Tips for Govt Jobs
+INTERVIEW_TIPS = [
+    {"name": "📋 Research the Organization", "desc": "Know the department's history, recent achievements, and current projects. Interviewers love candidates who show genuine interest."},
+    {"name": "👔 Dress Professionally", "desc": "For govt interviews, wear formal attire. Men: light shirt, dark trousers, tie. Women: saree or formal suit."},
+    {"name": "⏰ Arrive Early", "desc": "Reach the venue 30 minutes before your slot. Carry all original documents in a neat folder."},
+    {"name": "🗣️ Speak Clearly", "desc": "Use simple, clear language. Avoid jargon. If you don't know something, say 'I don't know' honestly."},
+    {"name": "🎯 Know Current Affairs", "desc": "Read newspapers daily for 2 weeks before the interview. Focus on govt schemes, budget, and national events."},
+    {"name": "📝 Prepare Your DAF", "desc": "For UPSC, know every detail of your Detailed Application Form. They WILL ask about hobbies and hometown."},
+    {"name": "🧘 Stay Calm", "desc": "Take a deep breath before answering. It's okay to pause for 2-3 seconds to gather your thoughts."},
+    {"name": "🤝 Body Language", "desc": "Maintain eye contact, sit upright, and keep hands visible on the table. Don't fidget or cross arms."},
+    {"name": "💡 Give Examples", "desc": "Support your answers with real-life examples or experiences. 'In my college project, I learned...'"},
+    {"name": "🙏 Be Humble", "desc": "Show respect to the panel. Don't argue. Accept feedback gracefully even if you disagree."},
+    {"name": "📚 Know Your Subject", "desc": "Expect technical questions from your graduation subject. Revise basics thoroughly."},
+    {"name": "🌍 Know India", "desc": "Geography, constitution, economy basics are must. Know your state's CM, Governor, and key facts."},
+    {"name": "❓ Prepare for 'Tell Me About Yourself'", "desc": "Have a 2-minute intro ready: education, achievements, why this service, future goals."},
+    {"name": "🔄 Mock Interviews", "desc": "Practice with friends or join coaching mock interviews. Feedback is invaluable."},
+    {"name": "📱 Turn Off Phone", "desc": "Switch off your phone before entering. Nothing worse than a phone ringing during your interview!"}
+]
+
+# Common Interview Questions for Govt Jobs
+INTERVIEW_QUESTIONS = [
+    {"q": "Tell me about yourself.", "tip": "2-min intro covering education, achievements, why this job, and goals. Keep it professional."},
+    {"q": "Why do you want to join government service?", "tip": "Talk about job security, serving the nation, making a difference in society."},
+    {"q": "What are your strengths and weaknesses?", "tip": "Give genuine strengths with examples. For weakness, mention one you're working to improve."},
+    {"q": "Why should we select you?", "tip": "Highlight unique qualities, relevant experience, and passion for public service."},
+    {"q": "What do you know about this department/organization?", "tip": "Mention its functions, recent initiatives, and how you can contribute."},
+    {"q": "What are the current challenges facing India?", "tip": "Discuss 2-3 issues like unemployment, climate change, healthcare with balanced views."},
+    {"q": "What is your opinion on [Current Issue]?", "tip": "Give a balanced view, acknowledge multiple perspectives, suggest solutions."},
+    {"q": "Describe a difficult situation you handled.", "tip": "Use STAR method: Situation, Task, Action, Result. Be specific."},
+    {"q": "Where do you see yourself in 5 years?", "tip": "Show ambition within the service. Talk about gaining expertise and leadership."},
+    {"q": "What are the qualities of a good administrator?", "tip": "Integrity, empathy, decisiveness, communication, adaptability. Give examples."},
+    {"q": "How do you handle stress?", "tip": "Mention healthy coping: exercise, prioritization, staying calm under pressure."},
+    {"q": "What is the role of civil servants in democracy?", "tip": "Policy implementation, public welfare, neutrality, accountability, bridging govt-citizen gap."},
+    {"q": "Any questions for us?", "tip": "Ask about training programs, posting locations, or growth opportunities. Never say 'No questions'."},
+    {"q": "What are three recent government schemes?", "tip": "Know details of PM schemes in your sector: eligibility, budget, impact."},
+    {"q": "How will you handle a corrupt senior officer?", "tip": "Diplomatic answer: follow rules, document evidence, use proper channels, maintain integrity."}
+]
