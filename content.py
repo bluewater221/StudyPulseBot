@@ -597,13 +597,13 @@ STUDY_TIPS = [
     "💤 Get 7-8 hours of sleep before the exam - rest is crucial!"
 ]
 
-# Beginner Exercise Tips
+# Beginner Exercise Tips with Images (from free-exercise-db)
 EXERCISE_TIPS = [
-    {"name": "🧘 Stretching", "desc": "Try 5 minutes of gentle stretching for every 2 hours of sitting."},
-    {"name": "🚶 Walking", "desc": "A 10-minute walk after lunch aids digestion and clears your mind."},
-    {"name": "💪 Movement", "desc": "Do 10 wall push-ups during your study breaks to get the blood flowing."},
-    {"name": "🙆 Posture", "desc": "Stand up and reach for the ceiling. Hold for 15 seconds to realign your spine."},
-    {"name": "🦶 Ankles", "desc": "Rotate your ankles 10 times in both directions while sitting to improve circulation."}
+    {"name": "🧘 Stretching", "desc": "Try 5 minutes of gentle stretching for every 2 hours of sitting.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/seated_calf_stretch/0.jpg"},
+    {"name": "🚶 Walking", "desc": "A 10-minute walk after lunch aids digestion and clears your mind.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/walking_treadmill/0.jpg"},
+    {"name": "💪 Wall Push-ups", "desc": "Do 10 wall push-ups during your study breaks to get the blood flowing.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/push-up_wall/0.jpg"},
+    {"name": "🙆 Posture Reset", "desc": "Stand up and reach for the ceiling. Hold for 15 seconds to realign your spine.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/standing_reach/0.jpg"},
+    {"name": "🦶 Ankle Rotations", "desc": "Rotate your ankles 10 times in both directions while sitting to improve circulation.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/ankle_circles/0.jpg"}
 ]
 
 # Beginner Hygiene Tips

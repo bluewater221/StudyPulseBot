@@ -479,9 +479,9 @@ _Keep pushing!_ 💪
     await send_safe_message(bot, chat_id, text, parse_mode="Markdown")
 
 async def send_exercise_tip(bot, chat_id):
-    """Send an exercise tip."""
+    """Send an exercise tip with image."""
     tip = random.choice(EXERCISE_TIPS)
-    text = f"""
+    caption = f"""
 {format_separator()}
 🏃 **Exercise Tip**
 {format_separator()}
@@ -493,7 +493,11 @@ async def send_exercise_tip(bot, chat_id):
 {format_separator()}
 _Take a break and move!_ 💪
 """
-    await send_safe_message(bot, chat_id, text, parse_mode="Markdown")
+    try:
+        await bot.send_photo(chat_id=chat_id, photo=tip.get('image', ''), caption=caption, parse_mode="Markdown")
+    except Exception as e:
+        logger.warning(f"Failed to send exercise image: {e}. Sending text only.")
+        await send_safe_message(bot, chat_id, caption, parse_mode="Markdown")
 
 
 # Note: Other commands (fact, formula, quiz) are already defined as async handlers 
@@ -607,9 +611,9 @@ _Powered by AI_ 🤖
     await update.message.reply_text(help_text, parse_mode="Markdown")
 
 async def exercise_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Sends an exercise tip."""
+    """Sends an exercise tip with image."""
     tip = random.choice(EXERCISE_TIPS)
-    text = f"""
+    caption = f"""
 {format_separator()}
 🏃 **Exercise Tip**
 {format_separator()}
@@ -621,7 +625,11 @@ async def exercise_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 {format_separator()}
 _Take a break and move!_ 💪
 """
-    await update.message.reply_text(text, parse_mode="Markdown")
+    try:
+        await update.message.reply_photo(photo=tip.get('image', ''), caption=caption, parse_mode="Markdown")
+    except Exception as e:
+        logger.warning(f"Failed to send exercise image: {e}. Sending text only.")
+        await update.message.reply_text(caption, parse_mode="Markdown")
 
 async def hygiene_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Sends a hygiene tip."""
