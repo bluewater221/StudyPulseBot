@@ -603,7 +603,17 @@ EXERCISE_TIPS = [
     {"name": "🚶 Walking", "desc": "A 10-minute walk after lunch aids digestion and clears your mind.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/walking_treadmill/0.jpg"},
     {"name": "💪 Wall Push-ups", "desc": "Do 10 wall push-ups during your study breaks to get the blood flowing.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/push-up_wall/0.jpg"},
     {"name": "🙆 Posture Reset", "desc": "Stand up and reach for the ceiling. Hold for 15 seconds to realign your spine.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/standing_reach/0.jpg"},
-    {"name": "🦶 Ankle Rotations", "desc": "Rotate your ankles 10 times in both directions while sitting to improve circulation.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/ankle_circles/0.jpg"}
+    {"name": "🦶 Ankle Rotations", "desc": "Rotate your ankles 10 times in both directions while sitting to improve circulation.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/ankle_circles/0.jpg"},
+    {"name": "🦵 Squats", "desc": "Do 10 bodyweight squats to strengthen your legs and boost energy.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/squat/0.jpg"},
+    {"name": "🤸 Lunges", "desc": "Try 5 lunges per leg to stretch your hip flexors and improve balance.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/lunge/0.jpg"},
+    {"name": "💆 Neck Rolls", "desc": "Gently roll your neck in circles to relieve tension from reading.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/neck_circles/0.jpg"},
+    {"name": "🏋️ Shoulder Shrugs", "desc": "Lift shoulders to ears, hold 5 seconds, release. Repeat 10 times.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/shoulder_shrug/0.jpg"},
+    {"name": "🧎 Plank Hold", "desc": "Hold a plank for 20-30 seconds to build core strength.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/plank/0.jpg"},
+    {"name": "🦋 Butterfly Stretch", "desc": "Sit with feet together, knees out. Gently press knees down for hip stretch.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/butterfly_stretch/0.jpg"},
+    {"name": "🙏 Wrist Circles", "desc": "Rotate your wrists 10 times each direction to prevent strain from writing.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/wrist_circles/0.jpg"},
+    {"name": "🦵 Calf Raises", "desc": "Stand on your toes, lower slowly. Do 15 reps to improve blood flow.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/calf_raise/0.jpg"},
+    {"name": "🔄 Torso Twist", "desc": "Sit upright, twist left and right slowly. Great for spine mobility.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/seated_twist/0.jpg"},
+    {"name": "👐 Chest Opener", "desc": "Clasp hands behind back, pull shoulders back. Hold 15 seconds.", "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/chest_stretch/0.jpg"}
 ]
 
 # Beginner Hygiene Tips
