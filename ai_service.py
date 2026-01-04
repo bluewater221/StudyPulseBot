@@ -119,6 +119,40 @@ Output JSON:
 }
 """
 
+INTERVIEW_TIP_PROMPT = """
+Generate a practical interview tip for Indian government job interviews (SSC, UPSC, Railway, Bank exams).
+The tip should be actionable and unique, covering aspects like: body language, dress code, handling tough questions, 
+current affairs preparation, document presentation, psychological tricks, panel behavior analysis, or confidence building.
+Output JSON:
+{
+  "name": "Short catchy title with emoji (e.g., '🎯 Master the First Impression')",
+  "desc": "Detailed practical advice (100-150 words) with specific examples. Make it unique and insightful."
+}
+"""
+
+INTERVIEW_QUESTION_PROMPT = """
+Generate a realistic interview question that is commonly asked in Indian government job interviews (SSC, UPSC, Railway, Bank).
+Include questions about: current affairs, personal background, ethical dilemmas, administrative scenarios, 
+opinion-based questions, or technical knowledge related to the service.
+Output JSON:
+{
+  "q": "The interview question",
+  "tip": "Detailed guidance on how to answer this question effectively (100-150 words). Include what to say, what to avoid, and example phrases."
+}
+"""
+
+EXERCISE_PROMPT = """
+Generate a quick exercise or stretch tip suitable for students who sit and study for long hours.
+The exercise should be simple, require no equipment, and can be done in 1-2 minutes during study breaks.
+Focus on: stretching, posture correction, eye exercises, breathing exercises, or simple movements.
+Output JSON:
+{
+  "name": "Short catchy title with emoji (e.g., '🧘 Desk Shoulder Stretch')",
+  "desc": "Clear step-by-step instructions for the exercise (50-100 words). Include reps/duration.",
+  "image_keywords": "2-3 keywords for finding a relevant exercise image (e.g., 'shoulder stretch desk')"
+}
+"""
+
 def repair_json(text: str) -> str:
     """Attempt to repair common AI JSON formatting issues."""
     # Remove markdown code blocks
@@ -319,6 +353,12 @@ async def get_ai_content(content_type: str, topic: Optional[str] = None, difficu
         prompt_text = FORMULA_PROMPT
     elif content_type == "language":
         prompt_text = LANGUAGE_PROMPT
+    elif content_type == "interview_tip":
+        prompt_text = INTERVIEW_TIP_PROMPT
+    elif content_type == "interview_question":
+        prompt_text = INTERVIEW_QUESTION_PROMPT
+    elif content_type == "exercise":
+        prompt_text = EXERCISE_PROMPT
     else:
         logger.error(f"Unknown content type: {content_type}")
         return None

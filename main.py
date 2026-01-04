@@ -480,8 +480,15 @@ _Keep pushing!_ 💪
     await send_safe_message(bot, chat_id, text, parse_mode="Markdown")
 
 async def send_exercise_tip(bot, chat_id):
-    """Send an exercise tip with image."""
-    tip = random.choice(EXERCISE_TIPS)
+    """Send an AI-generated exercise tip."""
+    # Try AI first
+    ai_content = await ai_service.get_ai_content("exercise")
+    
+    if ai_content:
+        tip = ai_content
+    else:
+        tip = random.choice(EXERCISE_TIPS)
+    
     caption = f"""
 {format_separator()}
 🏃 **Exercise Tip**
@@ -494,11 +501,15 @@ async def send_exercise_tip(bot, chat_id):
 {format_separator()}
 _Take a break and move!_ 💪
 """
-    try:
-        await bot.send_photo(chat_id=chat_id, photo=tip.get('image', ''), caption=caption, parse_mode="Markdown")
-    except Exception as e:
-        logger.warning(f"Failed to send exercise image: {e}. Sending text only.")
-        await send_safe_message(bot, chat_id, caption, parse_mode="Markdown")
+    image_url = tip.get('image', '')
+    if image_url:
+        try:
+            await bot.send_photo(chat_id=chat_id, photo=image_url, caption=caption, parse_mode="Markdown")
+            return
+        except Exception as e:
+            logger.warning(f"Failed to send exercise image: {e}")
+    
+    await send_safe_message(bot, chat_id, caption, parse_mode="Markdown")
 
 
 # Note: Other commands (fact, formula, quiz) are already defined as async handlers 
@@ -618,8 +629,18 @@ _Powered by AI_ 🤖
     await update.message.reply_text(help_text, parse_mode="Markdown")
 
 async def exercise_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Sends an exercise tip with image."""
-    tip = random.choice(EXERCISE_TIPS)
+    """Sends an AI-generated exercise tip."""
+    await update.message.reply_text("🔄 _Generating exercise tip..._", parse_mode="Markdown")
+    
+    # Try AI first
+    ai_content = await ai_service.get_ai_content("exercise")
+    
+    if ai_content:
+        tip = ai_content
+    else:
+        # Fallback to static
+        tip = random.choice(EXERCISE_TIPS)
+    
     caption = f"""
 {format_separator()}
 🏃 **Exercise Tip**
@@ -632,11 +653,16 @@ async def exercise_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 {format_separator()}
 _Take a break and move!_ 💪
 """
-    try:
-        await update.message.reply_photo(photo=tip.get('image', ''), caption=caption, parse_mode="Markdown")
-    except Exception as e:
-        logger.warning(f"Failed to send exercise image: {e}. Sending text only.")
-        await update.message.reply_text(caption, parse_mode="Markdown")
+    # Try to send with image if available
+    image_url = tip.get('image', '')
+    if image_url:
+        try:
+            await update.message.reply_photo(photo=image_url, caption=caption, parse_mode="Markdown")
+            return
+        except Exception as e:
+            logger.warning(f"Failed to send exercise image: {e}")
+    
+    await update.message.reply_text(caption, parse_mode="Markdown")
 
 async def hygiene_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Sends a hygiene tip."""
@@ -730,13 +756,21 @@ _/jobs [category]: central, railway, bank, ssc, upsc, state_
         await update.message.reply_text("❌ Could not fetch job alerts. Try again later.", parse_mode="Markdown")
 
 async def interview_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Sends interview tips or questions."""
+    """Sends AI-generated interview tips or questions."""
     mode = "tip"
     if context.args and context.args[0].lower() in ["question", "q", "questions"]:
         mode = "question"
     
+    await update.message.reply_text("🔄 _Generating interview content..._", parse_mode="Markdown")
+    
     if mode == "question":
-        item = random.choice(INTERVIEW_QUESTIONS)
+        # Try AI first
+        ai_content = await ai_service.get_ai_content("interview_question")
+        if ai_content:
+            item = ai_content
+        else:
+            item = random.choice(INTERVIEW_QUESTIONS)
+        
         text = f"""
 {format_separator()}
 ❓ **Interview Question**
@@ -751,7 +785,13 @@ async def interview_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 _/interview question for more questions_
 """
     else:
-        item = random.choice(INTERVIEW_TIPS)
+        # Try AI first
+        ai_content = await ai_service.get_ai_content("interview_tip")
+        if ai_content:
+            item = ai_content
+        else:
+            item = random.choice(INTERVIEW_TIPS)
+        
         text = f"""
 {format_separator()}
 🎯 **Interview Tip**
