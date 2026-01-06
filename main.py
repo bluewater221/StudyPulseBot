@@ -77,7 +77,8 @@ def load_data():
         logger.error(f"Failed to load data: {e}")
 
 # Load initial data
-load_data()
+if __name__ == "__main__":
+    load_data()
 
 # --- Formatting Helpers ---
 
@@ -441,6 +442,20 @@ def get_answer_keyboard(question_id: str) -> InlineKeyboardMarkup:
 
 # --- Job ---
 
+# Schedule Configuration (Hour in IST -> Content Type)
+# 8:00 - Morning Formula
+# 12:00 - Lunch Quiz
+# 15:00 - Afternoon Exercise Stretch (NEW)
+# 16:00 - Evening Fact
+# 20:00 - Night Quiz
+SCHEDULE = {
+    8: "formula",
+    12: "quiz",
+    15: "exercise", 
+    16: "fact",
+    20: "quiz"
+}
+
 async def send_hourly_message(context: ContextTypes.DEFAULT_TYPE):
     """Smart hourly schedule."""
     job = context.job
@@ -460,21 +475,16 @@ async def send_hourly_message(context: ContextTypes.DEFAULT_TYPE):
     
     # Schedule Distribution (IST)
     try:
-        if 8 <= current_hour <= 9:
-             # Morning: Key Formula only
-             await send_job_content(context, type="formula")
-        elif 12 <= current_hour <= 13:
-             # Lunch: Quick Quiz
-             await send_job_content(context, type="quiz")
-        elif 16 <= current_hour <= 17:
-             # Evening: Fact/Note
-             await send_job_content(context, type="fact")
-        elif 20 <= current_hour <= 21:
-             # Night: Quiz or Exercise Tip
-             if random.random() > 0.5:
-                 await send_job_content(context, type="quiz")
-             else:
-                 await send_exercise_tip(bot, chat_id)
+        if current_hour in SCHEDULE:
+            content_type = SCHEDULE[current_hour]
+            logger.info(f"Executing scheduled job for hour {current_hour}: {content_type}")
+            
+            if content_type == "exercise":
+                await send_exercise_tip(bot, chat_id)
+            else:
+                await send_job_content(context, type=content_type)
+        else:
+            logger.info(f"No job scheduled for hour {current_hour}")
                  
     except Exception as e:
         logger.error(f"Failed to send scheduled message: {e}")
